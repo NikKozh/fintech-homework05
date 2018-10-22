@@ -36,7 +36,7 @@ class TweetAppSpec extends FlatSpec with Matchers {
   }
 
   "getHashTags" should "return Seq of hash tags from text with hash tags" in {
-    val resultList = TweetExamples.tweetList.map(tweet => app.getHashTags(tweet.text))
+    val resultList = TweetExamples.tweetList.map(tweet => TweetApi.getHashTags(tweet.text))
 
     TweetExamples.tweetList.zip(resultList).foreach(resultPair =>
       resultPair._1.hashTags should be(resultPair._2))
