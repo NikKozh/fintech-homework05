@@ -7,53 +7,67 @@ class TweetAppSpec extends FlatSpec with Matchers {
   val storage = new InMemoryTweetStorage()
   val app = new TweetApi(storage)
 
-  object TweetExamples {
-    val simpleTweet          = Tweet("1", "user1",
-                                     "Simple text without numbers and one hashtag tags\n#singlehashtag",
-                                     List("singlehashtag"), Some(Instant.now), 0)
-
-    val tweetWithNumbers     = Tweet("2", "user2",
-                                     "More complex text with numbers 123 and 2 hash tags\n#hashtagone#2ndhashtag",
-                                     List("hashtagone", "2ndhashtag"), Some(Instant.now), 0)
-
-    val tweetWithoutHashTags = Tweet("3", "user3",
-                                     "Tweet without hash tags at all",
-                                     List.empty[String], Some(Instant.now), 0)
-
-    val tweetWithEmptyHashTag = Tweet("4", "user4",
-                                      "Tweet with empty hash tag by user mistake #",
-                                      List.empty[String], Some(Instant.now), 0)
-
-    val tweetWithTooLongText  = Tweet("5", "user5",
-                                      "Tweet with too long text, containing actually more than 140 symbols." +
-                                        "This tweet is invalid and must not be added to storage." +
-                                        "TweetAPI must return Result[Error] on this tweet." +
-                                        "#toolongtweet#nevergowithtoolongtweets",
-                                      List("toolongtweet", "nevergowithtoolongtweets"), Some(Instant.now), 0)
-
-    val tweetList = List(simpleTweet, tweetWithNumbers, tweetWithoutHashTags,
-                         tweetWithEmptyHashTag, tweetWithTooLongText)
+  object HashTagExamples {
+    val simpleText           = "Simple text without numbers and one hashtag tags\n#singlehashtag"
+    val textWithNumbers      = "More complex text with numbers 123 and 2 hash tags\n#firsthashtag#2ndhashtag"
+    val textWithoutHashTags  = "Tweet without hash tags at all"
+    val textWithEmptyHashTag = "Tweet with empty hash tag by user mistake #"
+    
+    val textList = List(simpleText, textWithNumbers, textWithoutHashTags, textWithEmptyHashTag)
   }
 
-  "getHashTags" should "return Seq of hash tags from text with hash tags" in {
-    val resultList = TweetExamples.tweetList.map(tweet => TweetApi.getHashTags(tweet.text))
+  "getHashTags" should "return correct Seq of hash tags from text with hash tags" in {
+    val hashTagList = HashTagExamples.textList.map(text => TweetApi.getHashTags(text))
+    val resultList = List(List("singlehashtag"),
+                          List("firsthashtag", "2ndhashtag"),
+                          Nil,
+                          Nil)
 
-    TweetExamples.tweetList.zip(resultList).foreach(resultPair =>
-      resultPair._1.hashTags should be(resultPair._2))
+    hashTagList.zip(resultList).foreach(resultPair =>
+      resultPair._1 should be(resultPair._2))
+  }
+
+  // lazy здесь для того, чтобы проверить метод createTweet в соответствующем тесте
+  lazy val createdTweet: Tweet = app.createTweet(CreateTweetRequest("Text of test tweet", "TestUser")).get
+  
+  behavior of "createTweet"
+  
+  it should "create tweet, save it to storage and return if length of tweet text <= 140" in {
+    createdTweet.text should be("Text of test tweet")
+    createdTweet.user should be("TestUser")
+  }
+
+  it should "return Error with corresponding description if length of tweet text > 140" in {
+    val tooLongTweet =
+      app.createTweet(CreateTweetRequest("Tweet with too long text, containing actually more than 140 symbols." +
+                                         "This tweet is invalid and must not be added to storage." +
+                                         "TweetAPI must return Result[Error] on this tweet." +
+                                         "#toolongtweet#nevergowithtoolongtweets", "troll"))
+
+    tooLongTweet should be(Error("API error: tweet has more than 140 symbols!"))
   }
 
   "getTweet" should "return exactly the same tweet, which was created with same id" in {
-    val createdTweet = app.createTweet(CreateTweetRequest("Text of test tweet", "TestUser"))
-    val gotTweet = app.getTweet(GetTweetRequest(createdTweet.get.id))
-    createdTweet.get should be(gotTweet.get)
+    val gotTweet = app.getTweet(GetTweetRequest(createdTweet.id))
+    gotTweet.get should be(createdTweet)
   }
 
   "incrementLikes" should "increment tweet likes for 1 and return count of new likes" in {
-    val newTweet = app.createTweet(CreateTweetRequest("Text", "user")).get
-    val oneLike = app.incrementLikes(LikeRequest(newTweet.id)).get
+    val oneLike = app.incrementLikes(LikeRequest(createdTweet.id)).get
     oneLike should be(1)
 
-    val fiveLikes = (1 to 4).map(_ => app.incrementLikes(LikeRequest(newTweet.id)).get).last
+    val fiveLikes = (1 to 4).map(_ => app.incrementLikes(LikeRequest(createdTweet.id)).get).last
     fiveLikes should be(5)
+  }
+
+  "getTweet and incrementLikes" should
+    "return Error with corresponding description if tweet with provided id not found" in {
+
+    val nonexistentTweet      = app.getTweet(GetTweetRequest("-1"))
+    val failedLikesIncrement  = app.incrementLikes(LikeRequest("-1"))
+    val nonexistentTweetError = Error(s"Storage load error: tweet with id -1 not found in the storage!")
+
+    nonexistentTweet     should be(nonexistentTweetError)
+    failedLikesIncrement should be(nonexistentTweetError)
   }
 }
