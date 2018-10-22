@@ -62,7 +62,8 @@ final class InMemoryTweetStorage() extends TweetStorage {
 }
 
 class TweetApi(storage: TweetStorage) {
-  ???
+  def getHashTags(text: String): Seq[String] =
+    """#([0-9a-zA-Z]+)""".r.findAllIn(text).toList.map(hashTag => hashTag.tail)
 }
 
 object TweetApiExample extends App {
