@@ -1,6 +1,8 @@
 package fintech.homework05
 
 import java.time.Instant
+import java.util.UUID
+import scala.collection.immutable.HashMap
 
 /**
   * Вам необходимо реализовать api для создания твиттов, получения твитта и лайка твитта
@@ -23,7 +25,7 @@ import java.time.Instant
   *
   *
   * Все функции должны возвращать значение типа Result[T]
-  * в котором может лежать либо текст ошибки, либо результат выполнение
+  * в котором может лежать либо текст ошибки, либо результат выполнения
   */
 
 case class Tweet(id: String,
@@ -38,7 +40,25 @@ case class GetTweetRequest(id: String)
 case class LikeRequest(id: String)
 
 trait TweetStorage {
-  ???
+  def saveTweet(tweet: Tweet): Result[Tweet]
+  def getTweet(id: String): Result[Tweet]
+}
+
+final class InMemoryTweetStorage() extends TweetStorage {
+  private var storage: Map[String, Tweet] = new HashMap()
+
+  def saveTweet(tweet: Tweet): Result[Tweet] =
+    if (storage.contains(tweet.id))
+      Error(s"Tweet with id ${tweet.id} already exists in the storage!")
+    else {
+      storage = storage.updated(tweet.id, tweet)
+      Success(tweet)
+    }
+
+  def getTweet(id: String): Result[Tweet] = storage.get(id) match {
+    case Some(tweet) => Success(tweet)
+    case None        => Error(s"Tweet with id $id not found in the storage!")
+  }
 }
 
 class TweetApi(storage: TweetStorage) {
