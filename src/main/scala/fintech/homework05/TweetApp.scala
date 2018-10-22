@@ -112,15 +112,10 @@ class TweetApi(storage: TweetStorage) {
     storage.loadTweet(request.id)
 
   def incrementLikes(request: LikeRequest): Result[Int] =
-    storage.loadTweet(request.id) match {
-      case Success(tweet) =>
-        val newLikes = tweet.likes + 1
-        storage.updateTweet(request.id, None, None, Some(newLikes)) match {
-          case Success(_) => Success(newLikes)
-          case Error(message) => Error(message) // TODO: сделать комбинатор map для таких случаев
-        }
-      case Error(message) => Error(message)
-    }
+    storage.loadTweet(request.id).flatMap(tweet => {
+      val newLikes = tweet.likes + 1
+      storage.updateTweet(request.id, None, None, Some(newLikes)).map(_ => newLikes)
+    })
 }
 
 object TweetApi {
