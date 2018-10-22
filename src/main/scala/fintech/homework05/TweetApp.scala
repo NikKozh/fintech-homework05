@@ -98,7 +98,7 @@ final class InMemoryTweetStorage() extends TweetStorage {
 
 class TweetApi(storage: TweetStorage) {
   def createTweet(request: CreateTweetRequest): Result[Tweet] = request match {
-    case CreateTweetRequest(text, _) if text.length > 280 => Error("API error: tweet has more than 280 symbols!")
+    case CreateTweetRequest(text, _) if text.length > 140 => Error("API error: tweet has more than 140 symbols!")
     // Другие проверки, если они понадобятся в будущем...
     case CreateTweetRequest(text, user) => storage.saveTweet(Tweet(UUID.randomUUID().toString,
                                                              user,
@@ -117,7 +117,7 @@ class TweetApi(storage: TweetStorage) {
         val newLikes = tweet.likes + 1
         storage.updateTweet(request.id, None, None, Some(newLikes)) match {
           case Success(_) => Success(newLikes)
-          case Error(message) => Error(message)
+          case Error(message) => Error(message) // TODO: сделать комбинатор map для таких случаев
         }
       case Error(message) => Error(message)
     }
