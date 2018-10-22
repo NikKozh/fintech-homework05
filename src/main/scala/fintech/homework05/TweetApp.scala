@@ -41,7 +41,7 @@ case class LikeRequest(id: String)
 
 trait TweetStorage {
   def saveTweet(tweet: Tweet): Result[Tweet]
-  def getTweet(id: String): Result[Tweet]
+  def loadTweet(id: String): Result[Tweet]
 }
 
 final class InMemoryTweetStorage() extends TweetStorage {
@@ -55,15 +55,29 @@ final class InMemoryTweetStorage() extends TweetStorage {
       Success(tweet)
     }
 
-  def getTweet(id: String): Result[Tweet] = storage.get(id) match {
+  def loadTweet(id: String): Result[Tweet] = storage.get(id) match {
     case Some(tweet) => Success(tweet)
     case None        => Error(s"Tweet with id $id not found in the storage!")
   }
 }
 
 class TweetApi(storage: TweetStorage) {
+  def createTweet(request: CreateTweetRequest): Result[Tweet] =
+    if (request.text.length <= 280)
+      storage.saveTweet(Tweet(UUID.randomUUID().toString,
+                              request.user,
+                              request.text,
+                              getHashTags(request.text),
+                              Some(Instant.now),
+                              0))
+    else
+      Error("Tweet has more than 280 symbols!")
+
   def getHashTags(text: String): Seq[String] =
     """#([0-9a-zA-Z]+)""".r.findAllIn(text).toList.map(hashTag => hashTag.tail)
+
+  def getTweet(request: GetTweetRequest): Result[Tweet] =
+    storage.loadTweet(request.id)
 }
 
 object TweetApiExample extends App {
