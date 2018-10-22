@@ -1,5 +1,4 @@
 package fintech.homework05
-import java.time.Instant
 
 import org.scalatest.{FlatSpec, Matchers}
 
