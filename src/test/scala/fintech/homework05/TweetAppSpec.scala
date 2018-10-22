@@ -47,4 +47,13 @@ class TweetAppSpec extends FlatSpec with Matchers {
     val gotTweet = app.getTweet(GetTweetRequest(createdTweet.get.id))
     createdTweet.get should be(gotTweet.get)
   }
+
+  "incrementLikes" should "increment tweet likes for 1 and return count of new likes" in {
+    val newTweet = app.createTweet(CreateTweetRequest("Text", "user")).get
+    val oneLike = app.incrementLikes(LikeRequest(newTweet.id)).get
+    oneLike should be(1)
+
+    val fiveLikes = (1 to 4).map(_ => app.incrementLikes(LikeRequest(newTweet.id)).get).last
+    fiveLikes should be(5)
+  }
 }
