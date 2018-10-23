@@ -7,18 +7,20 @@ class TweetAppSpec extends FlatSpec with Matchers {
   val app = new TweetApi(storage)
 
   object HashTagExamples {
-    val simpleText           = "Simple text without numbers and one hashtag tags\n#singlehashtag"
-    val textWithNumbers      = "More complex text with numbers 123 and 2 hash tags\n#firsthashtag#2ndhashtag"
-    val textWithoutHashTags  = "Tweet without hash tags at all"
-    val textWithEmptyHashTag = "Tweet with empty hash tag by user mistake #"
+    val simpleText             = "Simple text without numbers and one hashtag tags\n#singlehashtag"
+    val textWithNumbers        = "More complex text with numbers 123 and 2 hash tags\n#firsthashtag#2ndhashtag"
+    val textWithMiddleHashTags = "Text with hash tags #rightinthemiddle of text #andwithanotherone\n with line ending"
+    val textWithoutHashTags    = "Tweet without hash tags at all"
+    val textWithEmptyHashTag   = "Tweet with empty hash tag by user mistake #"
     
-    val textList = List(simpleText, textWithNumbers, textWithoutHashTags, textWithEmptyHashTag)
+    val textList = List(simpleText, textWithNumbers, textWithMiddleHashTags, textWithoutHashTags, textWithEmptyHashTag)
   }
 
   "getHashTags" should "return correct Seq of hash tags from text with hash tags" in {
     val hashTagList = HashTagExamples.textList.map(text => TweetApi.getHashTags(text))
     val resultList = List(List("singlehashtag"),
                           List("firsthashtag", "2ndhashtag"),
+                          List("rightinthemiddle", "andwithanotherone"),
                           Nil,
                           Nil)
 
