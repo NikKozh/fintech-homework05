@@ -65,8 +65,8 @@ final class InMemoryTweetStorage() extends TweetStorage {
   }
 
   /*
-  * С точки зрения только лишь обновления лайков такой подход к обновлению твита менее эффективный, чем,
-  * например, просто инкремент на единицу только в этом классе. Т.к. нам придётся в классе TweetApi сначала
+  * Про updateTweet: с точки зрения только лишь обновления лайков такой подход к обновлению твита менее эффективный,
+  * чем, например, просто инкремент на единицу только в этом классе. Т.к. нам придётся в классе TweetApi сначала
   * запрашивать весь твит по id, чтобы узнать текущее количество лайков, а потом вызывать этот метод.
   * Таким образом, мы ищем твит в двух разных классах и открываем соединение с условной "базой данных" два раза
   * вместо одного. Но при этом такой подход намного более расширяемый и гибкий, т.к. позволяет нам как
@@ -99,13 +99,13 @@ final class InMemoryTweetStorage() extends TweetStorage {
 class TweetApi(storage: TweetStorage) {
   def createTweet(request: CreateTweetRequest): Result[Tweet] = request match {
     case CreateTweetRequest(text, _) if text.length > 140 => Error("API error: tweet has more than 140 symbols!")
-    // Другие проверки, если они понадобятся в будущем...
+    // ...другие проверки, если они понадобятся в будущем...
     case CreateTweetRequest(text, user) => storage.saveTweet(Tweet(UUID.randomUUID().toString,
-                                                             user,
-                                                             text,
-                                                             TweetApi.getHashTags(text),
-                                                             Some(Instant.now),
-                                                             0))
+                                                                   user,
+                                                                   text,
+                                                                   TweetApi.getHashTags(text),
+                                                                   Some(Instant.now),
+                                                                   0))
   }
 
   def getTweet(request: GetTweetRequest): Result[Tweet] =
@@ -120,13 +120,12 @@ class TweetApi(storage: TweetStorage) {
 
 object TweetApi {
   def getHashTags(text: String): Seq[String] =
-    """#([0-9a-zA-Z]+)""".r.findAllIn(text).toList.map(hashTag => hashTag.tail)
+    """#[0-9a-zA-Z]+""".r.findAllIn(text).toList.map(hashTag => hashTag.tail)
 }
 
 object TweetApiExample extends App {
-  /*
-  val storage: TweetStorage = ???
-  val app = new TwitterApi(storage)
+  val storage: TweetStorage = new InMemoryTweetStorage()
+  val app = new TweetApi(storage)
 
   val request = CreateTweetRequest(user = "me", text = "Hello, world!")
 
@@ -135,5 +134,4 @@ object TweetApiExample extends App {
     case Success(value) => println(s"Created tweet with id: ${value.id}")
     case Error(message) => println(s"Failed to create tweet: $message")
   }
-  */
 }

@@ -28,37 +28,40 @@ class TweetAppSpec extends FlatSpec with Matchers {
       resultPair._1 should be(resultPair._2))
   }
 
-  // lazy здесь для того, чтобы проверить метод createTweet в соответствующем тесте
-  lazy val createdTweet: Tweet = app.createTweet(CreateTweetRequest("Text of test tweet", "TestUser")).get
+  // lazy для того, чтобы проверить метод createTweet в соответствующем тесте, а не прямо здесь
+  lazy val createdTweet: Result[Tweet] = app.createTweet(CreateTweetRequest("Text of test tweet", "TestUser"))
   
   behavior of "createTweet"
   
   it should "create tweet, save it to storage and return if length of tweet text <= 140" in {
-    createdTweet.text should be("Text of test tweet")
-    createdTweet.user should be("TestUser")
+    // Первый вызов lazy createdTweet, сначала происходит создание твита
+    createdTweet.get.text should be("Text of test tweet")
+    createdTweet.get.user should be("TestUser")
   }
 
   it should "return Error with corresponding description if length of tweet text > 140" in {
     val tooLongTweet =
-      app.createTweet(CreateTweetRequest("Tweet with too long text, containing actually more than 140 symbols." +
-                                         "This tweet is invalid and must not be added to storage." +
-                                         "TweetAPI must return Result[Error] on this tweet." +
+      app.createTweet(CreateTweetRequest("Tweet with too long text, containing actually more than 140 symbols. " +
+                                         "This tweet is invalid and must not be added to storage. " +
+                                         "TweetAPI must return Result[Error] on this tweet. " +
                                          "#toolongtweet#nevergowithtoolongtweets", "troll"))
 
     tooLongTweet should be(Error("API error: tweet has more than 140 symbols!"))
   }
 
   "getTweet" should "return exactly the same tweet, which was created with same id" in {
-    val gotTweet = app.getTweet(GetTweetRequest(createdTweet.id))
-    gotTweet.get should be(createdTweet)
+    val gotTweet = app.getTweet(GetTweetRequest(createdTweet.get.id))
+    gotTweet should be(createdTweet)
   }
 
   "incrementLikes" should "increment tweet likes for 1 and return count of new likes" in {
-    val oneLike = app.incrementLikes(LikeRequest(createdTweet.id)).get
-    oneLike should be(1)
+    val createdTweetId = createdTweet.get.id
 
-    val fiveLikes = (1 to 4).map(_ => app.incrementLikes(LikeRequest(createdTweet.id)).get).last
-    fiveLikes should be(5)
+    val oneLike = app.incrementLikes(LikeRequest(createdTweetId))
+    oneLike should be(Success(1))
+
+    val fiveLikes = (1 to 4).map(_ => app.incrementLikes(LikeRequest(createdTweetId))).last
+    fiveLikes should be(Success(5))
   }
 
   "getTweet and incrementLikes" should
